@@ -4,7 +4,7 @@ import numpy as np
 
  
 arr = []
-rings = [1000/2, 550/2, 400/2, 200/2, 100/2, 0.05/2]
+rings = [1000/2, 550/2, 300/2, 150/2, 75/2, 0.05/2]
 
 HEIGHT = None
 WIDTH = None
@@ -19,12 +19,8 @@ def click_event(event, x, y, flags, params):
     global img
     if event == cv2.EVENT_LBUTTONDOWN:
         
-       
-        
         if len(arr) == 0:
             arr.append([x,y])
-
-            # print(int(rings[0] * ppm/2))
             img = cv2.circle(img, (x, y), int(rings[0] * ppm), (255, 255, 255), 1)
             img = cv2.circle(img, (x, y), int(((rings[0] - rings[1]))*ppm), (20, 20, 20), 1)
             cv2.imshow('image', img)
@@ -32,31 +28,40 @@ def click_event(event, x, y, flags, params):
             arr.append([x,y])
 
             img = cv2.circle(img, (x, y), int(rings[1] * ppm), (255, 255, 255), 1)
-            # print(int(rings[1] * ppm/2))
             print(arr)
             print("arr^^")
-            r3_pred = calc_zones(arr[0][0], arr[0][1], arr[1][0], arr[1][1])
+            r3_pred = calc_zones(MAP_CENTER, arr[0][0], arr[0][1], arr[1][0], arr[1][1], 1)
             x3 = int(r3_pred[0])
             y3 = int(r3_pred[1])
-            img = cv2.circle(img, (x3, y3), 10, (255, 255, 255), 1)
-            cv2.imwrite("WE-LAN-4-26-G1_Test.png", img)
+            arr.append([r3_pred[0],r3_pred[1]])
+            img = cv2.circle(img, (x3, y3), int(rings[2] * ppm), (255, 0, 0), 2)
+
+            #Attempts Zone 4 and 5 (Unstable)
+            for i in range(2,4):
+                r_pred = calc_zones(np.asarray([arr[i-2][0], arr[i-2][1]]), arr[i-1][0], arr[i-1][1], arr[i][0], arr[i][1], i)
+                x_r = int(r_pred[0])
+                y_r = int(r_pred[1])
+                arr.append([r_pred[0], r_pred[1]])
+                img = cv2.circle(img, (x_r, y_r), int(rings[i+1] * ppm), (255, 255, 0), 2)
+
+            # cv2.imwrite("WE-LAN-4-26-G1_Test.png", img)
             cv2.imshow('image', img)
+        
         if (len(arr) >= 2):
             print(str(x) + " " + str(y))
-            # print("len: " + str(len(arr)))
 
-def calc_zones(x1, y1, x2, y2):
+def calc_zones(center, x1, y1, x2, y2, ring):
     # print(x1)
     ring_1_center = np.array([x1,y1])
-    ring_1_rad = rings[0] * ppm
+    ring_1_rad = rings[ring-1] * ppm
     print("start")
-    map_center = np.array(MAP_CENTER)
-    print(map_center)
+    map_center = np.array(center)
+    # print(map_center)
     r1_cen_to_mc = map_center - ring_1_center
-    print(r1_cen_to_mc)
+    # print(r1_cen_to_mc)
     dist = np.linalg.norm(r1_cen_to_mc)
     rad_vec = ring_1_rad * (r1_cen_to_mc / dist)
-    print(rad_vec)
+    # print(rad_vec)
     V1 = None
     if dist <= ring_1_rad: # ring 1 contains center  
         V1 = r1_cen_to_mc - rad_vec
@@ -68,7 +73,7 @@ def calc_zones(x1, y1, x2, y2):
     V1 = V1 * (1 - (v1_norm/rad_norm))
 
     ring_2_center = np.array([x2,y2])
-    ring_2_rad = rings[1] * ppm
+    ring_2_rad = rings[ring] * ppm
     V2 = ring_2_center - ring_1_center
     V3 = None
     
@@ -77,13 +82,16 @@ def calc_zones(x1, y1, x2, y2):
         V3 = V1 + V2 + map_center
     else:
         V3 = V1 + V2 + ring_1_center
-    print(ring_1_center)
-    print(ring_2_center)
-    print(V1)
-    print(V2)
-    print(V3)
+    # print(ring_1_center)
+    # print(ring_2_center)
+    # print(V1)
+    # print(V2)
+    # print(V3)
+    A = np.array([V1, V2])
+    w, v = np.linalg.eig(A)
+    print(w)
+    print(v)
     return V3
-
 
 if __name__=="__main__":
     filepath = "worlds-edge.png"
