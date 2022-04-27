@@ -17,14 +17,20 @@ ppm = None
 
 def click_event(event, x, y, flags, params):
     global img
-    if event == cv2.EVENT_LBUTTONDOWN and len(arr) < 2:
-        arr.append([x,y])
+    if event == cv2.EVENT_LBUTTONDOWN:
         
-        if len(arr) == 1:
+       
+        
+        if len(arr) == 0:
+            arr.append([x,y])
+
             # print(int(rings[0] * ppm/2))
             img = cv2.circle(img, (x, y), int(rings[0] * ppm), (255, 255, 255), 1)
             img = cv2.circle(img, (x, y), int(((rings[0] - rings[1]))*ppm), (20, 20, 20), 1)
-        if (len(arr) == 2):
+            cv2.imshow('image', img)
+        elif (len(arr) == 1):
+            arr.append([x,y])
+
             img = cv2.circle(img, (x, y), int(rings[1] * ppm), (255, 255, 255), 1)
             # print(int(rings[1] * ppm/2))
             print(arr)
@@ -34,7 +40,10 @@ def click_event(event, x, y, flags, params):
             y3 = int(r3_pred[1])
             img = cv2.circle(img, (x3, y3), 10, (255, 255, 255), 1)
             cv2.imwrite("WE-LAN-4-26-G1_Test.png", img)
-        cv2.imshow('image', img)
+            cv2.imshow('image', img)
+        if (len(arr) >= 2):
+            print(str(x) + " " + str(y))
+            # print("len: " + str(len(arr)))
 
 def calc_zones(x1, y1, x2, y2):
     # print(x1)
@@ -59,8 +68,15 @@ def calc_zones(x1, y1, x2, y2):
     V1 = V1 * (1 - (v1_norm/rad_norm))
 
     ring_2_center = np.array([x2,y2])
+    ring_2_rad = rings[1] * ppm
     V2 = ring_2_center - ring_1_center
-    V3 = V1 + V2 + ring_1_center
+    V3 = None
+    
+    dist2 = np.linalg.norm(map_center - ring_2_center)
+    if (dist2 <= ring_2_rad):
+        V3 = V1 + V2 + map_center
+    else:
+        V3 = V1 + V2 + ring_1_center
     print(ring_1_center)
     print(ring_2_center)
     print(V1)
