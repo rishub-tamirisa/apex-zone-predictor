@@ -33,6 +33,7 @@ def click_event(event, x, y, flags, params):
             x3 = int(r3_pred[0])
             y3 = int(r3_pred[1])
             img = cv2.circle(img, (x3, y3), 10, (255, 255, 255), 1)
+            cv2.imwrite("WE-LAN-4-26-G1_Test.png", img)
         cv2.imshow('image', img)
 
 def calc_zones(x1, y1, x2, y2):
