@@ -118,9 +118,9 @@ def calc_zones(center, x1, y1, x2, y2, ring):
     w, v = np.linalg.eig(A)
     msg = ""
     if isinstance(w[0], complex):
-        msg = "Counter-Pull Rotation on Ring " + str(ring+2)
+        msg = "Oscillatory Shift on Zone " + str(ring+2)
     else:
-        msg = "Standard Rotation on Ring " + str(ring+2)
+        msg = "Standard Shift on Zone " + str(ring+2)
 
     font                   = cv2.FONT_HERSHEY_SIMPLEX
     bottomLeftCornerOfText = (10,count)
