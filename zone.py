@@ -33,7 +33,8 @@ def click_event(event, x, y, flags, params):
             # print("second")
             # print(arr)
             img = cv2.circle(img, (x, y), int(rings[1] * ppm), (255, 255, 255), 1)
-           
+            img = cv2.circle(img, (x, y), 2, (0,0,255),3)
+
             r3_pred = calc_zones(MAP_CENTER, arr[0][0], arr[0][1], x, y, 1)
             # arr.append([x,y])
             x3 = int(r3_pred[0])
@@ -64,7 +65,9 @@ def click_event(event, x, y, flags, params):
         # if (len(arr) >= 2):
             # print(str(x) + " " + str(y))
 
+count = 850
 def calc_zones(center, x1, y1, x2, y2, ring):
+    global count
     # print(x1)
     ring_1_center = np.array([x1,y1])
     ring_1_rad = rings[ring-1] * ppm
@@ -113,11 +116,27 @@ def calc_zones(center, x1, y1, x2, y2, ring):
     # print("RING SHIFT MATRIX:")
     # print(A)
     w, v = np.linalg.eig(A)
-    print("--------------")
+    msg = ""
     if isinstance(w[0], complex):
-        print("Counter-Pull Rotation on Ring " + str(ring+2))
+        msg = "Counter-Pull Rotation on Ring " + str(ring+2)
     else:
-        print("Standard Rotation on Ring " + str(ring+2))
+        msg = "Standard Rotation on Ring " + str(ring+2)
+
+    font                   = cv2.FONT_HERSHEY_SIMPLEX
+    bottomLeftCornerOfText = (10,count)
+    fontScale              = 0.4
+    fontColor              = (255,255,255)
+    thickness              = 1
+    lineType               = 2
+
+    cv2.putText(img,msg, 
+        bottomLeftCornerOfText, 
+        font, 
+        fontScale,
+        fontColor,
+        thickness,
+        lineType)
+    count += 25
     # print("Eigenvalue/vectors:")
     # print(w)
     # print(v)
