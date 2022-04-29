@@ -43,7 +43,7 @@ def click_event(event, x, y, flags, params):
             color = [(255, 255, 0), (0, 255, 255), (255, 0, 255)]
             #Attempts Zone 3 | (4 & 5 unstable)
             for i in range(2,5):
-                r_pred = calc_zones(np.asarray([arr[i-2][0], arr[i-2][1]]), arr[i-1][0], arr[i-1][1], arr[i][0], arr[i][1], i, False)
+                r_pred = calc_zones(np.asarray([arr[i-2][0], arr[i-2][1]]), arr[i-1][0], arr[i-1][1], arr[i][0], arr[i][1], i, True)
                 x_r = int(r_pred[0])
                 y_r = int(r_pred[1])
                 arr.append([r_pred[0], r_pred[1]])
@@ -97,10 +97,10 @@ def calc_zones(center, x1, y1, x2, y2, ring, pull):
     #TODO: Implement counterpulls with key presses
     if (np.linalg.norm(r1_cen_to_mc) != 0):
         if pull:
-            print("counter at ring: " + str(ring+1))
-            print("V3 before: " + str(V3 - ring_1_center))
+            # print("counter at ring: " + str(ring+1))
+            # print("V3 before: " + str(V3 - ring_1_center))
             V3 = calc_counter(V1, V2, ring_1_center, r1_cen_to_mc, 2)
-            print("V3 after: " + str(V3 - ring_1_center))
+            # print("V3 after: " + str(V3 - ring_1_center))
 
     A = np.array([V1, V2])
     w, v = np.linalg.eig(A)
@@ -122,25 +122,25 @@ def calc_zones(center, x1, y1, x2, y2, ring, pull):
     
     return V3
 
-PULL_MULTIPLIER = 1.0
+PULL_MULTIPLIER = 0.1
 def calc_counter(V1, V2, center, rad, m):
     global PULL_MULTIPLIER
 
     V3 = V1 + V2
-    print("V3 local : " + str(V3))
+    # print("V3 local : " + str(V3))
     theta1 = np.arctan(V1[1]/V1[0])
     theta2 = np.arctan(V2[1]/V2[0])
-    print("Angle: " + str(theta1 * 360/(2*np.pi)))
-    print("Angle: " + str(theta2 * 360/(2*np.pi)))
-    theta = (theta2 - theta1) / 1.2
+    # print("Angle: " + str(theta1 * 360/(2*np.pi)))
+    # print("Angle: " + str(theta2 * 360/(2*np.pi)))
+    theta = (theta2 - theta1)
     theta = theta * PULL_MULTIPLIER
-    PULL_MULTIPLIER = PULL_MULTIPLIER * 0.8
+    # PULL_MULTIPLIER = PULL_MULTIPLIER * 2
     rot = np.array([[cos(theta), -sin(theta)], [sin(theta), cos(theta)]])
     counter = rot.dot(V3)
     counterpull_fac1 = V1 / np.linalg.norm(V1) * 6
     counterpull_fac2 = V2 / np.linalg.norm(V2) * 6
 
-    print( "V: " + str(counter))
+    # print( "V: " + str(counter))
     V =  (counter + center + counterpull_fac1 + counterpull_fac2)
     return V#(m - m*(1-PULL_STRENGTH))*V2 - counterpull_fac + center
 
