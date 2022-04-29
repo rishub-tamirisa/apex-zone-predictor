@@ -1,10 +1,13 @@
 import cv2
 from PIL import Image
 import numpy as np
+from math import cos, sin
 
- 
+#Global Constants 
 arr = []
-rings = [1000/2, 550/2, 300/2, 150/2, 75/2, 0.05/2]
+rings = [1000/2, 525/2, 300/2, 150/2, 75/2, 0.05/2]
+
+ #Counterpull Strength
 
 HEIGHT = None
 WIDTH = None
@@ -28,7 +31,7 @@ def click_event(event, x, y, flags, params):
             img = cv2.circle(img, (x, y), 2, (0,0,255),3)
 
             #Draw Zone 2 Center Guide
-            img = cv2.circle(img, (x, y), int(((rings[0] - rings[1]))*ppm), (20, 20, 20), 1)
+            img = cv2.circle(img, (x, y), int(((rings[0] - rings[1]))*ppm), (100,100,100), 1)
             cv2.imshow('image', img)
         elif (len(arr) == 2):
             arr.append([x,y])
@@ -40,7 +43,7 @@ def click_event(event, x, y, flags, params):
             color = [(255, 255, 0), (0, 255, 255), (255, 0, 255)]
             #Attempts Zone 3 | (4 & 5 unstable)
             for i in range(2,5):
-                r_pred = calc_zones(np.asarray([arr[i-2][0], arr[i-2][1]]), arr[i-1][0], arr[i-1][1], arr[i][0], arr[i][1], i, True)
+                r_pred = calc_zones(np.asarray([arr[i-2][0], arr[i-2][1]]), arr[i-1][0], arr[i-1][1], arr[i][0], arr[i][1], i, False)
                 x_r = int(r_pred[0])
                 y_r = int(r_pred[1])
                 arr.append([r_pred[0], r_pred[1]])
@@ -51,35 +54,37 @@ def click_event(event, x, y, flags, params):
             # cv2.imwrite("WE-LAN-4-26-G1_Test.png", img)
             cv2.imshow('image', img)
 
+def compute_vecs(center, x1,y1,ring):
+    ring_1_center = np.array([x1,y1])
+    ring_1_rad = rings[ring] * ppm
+    r1_cen_to_mc = center - ring_1_center
+    return ring_1_center, ring_1_rad, r1_cen_to_mc
+
 count = 850
+
 def calc_zones(center, x1, y1, x2, y2, ring, pull):
     global count
-    ring_1_center = np.array([x1,y1])
-    ring_1_rad = rings[ring-2] * ppm
-    map_center = np.array(center)
-    r1_cen_to_mc = map_center - ring_1_center
-    dist = np.linalg.norm(r1_cen_to_mc)
+
+    map_center = np.array(center) #center of previous ring
+    ring_1_center, ring_1_rad, r1_cen_to_mc = compute_vecs(map_center, x1, y1, ring-2)
+    dist = np.linalg.norm(r1_cen_to_mc) #distance from ring center to previous center
+
     rad_vec = None
     if dist != 0:
-        rad_vec = ring_1_rad * (r1_cen_to_mc / dist)
+        rad_vec = ring_1_rad * (r1_cen_to_mc / dist) #vector pointing from center of ring to edge with length radius
     else:
         rad_vec = np.array([0,0]) # define 0 vector
+
+    #Compute V1 by subtracting vector from center to ring from radius vector
     V1 = None
     if dist <= ring_1_rad: # ring 1 contains center  
         V1 = r1_cen_to_mc - rad_vec
     else: # ring 1 outside center
         V1 = rad_vec - r1_cen_to_mc
     
-    v1_norm = np.linalg.norm(V1)
-    rad_norm = np.linalg.norm(r1_cen_to_mc)
+    ring_2_center, ring_2_rad, _ = compute_vecs(map_center, x2, y2, ring-1)
 
-    #TODO: Implement counterpulls with key presses
-    counterpull_fac = None
-    if (rad_norm != 0):
-        counterpull_fac = V1 * (1 - (v1_norm/rad_norm))
-
-    ring_2_center = np.array([x2,y2])
-    ring_2_rad = rings[ring-1] * ppm
+    #compute V2 by subtracting ring 2 center and ring 1 center
     V2 = ring_2_center - ring_1_center
     V3 = None
     
@@ -89,15 +94,14 @@ def calc_zones(center, x1, y1, x2, y2, ring, pull):
     else:
         V3 = V1 + V2 + ring_1_center
     
-    # This is what the counterpull would change, not for all rings though
-    PULL_STRENGTH = 0.8
-    if pull and ring == 2:
-        V3 = (2 - 2*(1-PULL_STRENGTH))*V2 + (2*(1-PULL_STRENGTH)) * counterpull_fac + ring_1_center
+    #TODO: Implement counterpulls with key presses
+    if (np.linalg.norm(r1_cen_to_mc) != 0):
+        if pull:
+            print("counter at ring: " + str(ring+1))
+            print("V3 before: " + str(V3 - ring_1_center))
+            V3 = calc_counter(V1, V2, ring_1_center, r1_cen_to_mc, 2)
+            print("V3 after: " + str(V3 - ring_1_center))
 
-    # V3 = V1 + V2 + ring_1_center
-    # print(V1)
-    # print(V2)
-    # print(V3)
     A = np.array([V1, V2])
     w, v = np.linalg.eig(A)
     msg = ""
@@ -106,21 +110,47 @@ def calc_zones(center, x1, y1, x2, y2, ring, pull):
     else:
         msg = "Standard Shift on Zone " + str(ring+1)
 
+    printCV(msg, (255,255,255))
 
-    cv2.putText(img,msg, (10,count), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255,255,255), 1, 2)
-    count += 25
     max_shift = ((rings[ring-1] - rings[ring]))*ppm
     shift = np.linalg.norm(V3 - ring_2_center)
-    
     if (shift > max_shift):
-        # print("here on zone: " + str(ring+1))
-        V3 = ring_2_center + max_shift * (V3 - ring_2_center)/(np.linalg.norm(V3 - ring_2_center))
+        V3 = closestPtOnCircle(ring_2_center, max_shift, V3)
+        
     shift = np.linalg.norm(V3 - ring_2_center)
-    print(shift)
-    # print("Eigenvalue/vectors:")
-    # print(w)
-    # print(v)
+    # print(shift)
+    
     return V3
+
+PULL_MULTIPLIER = 1.0
+def calc_counter(V1, V2, center, rad, m):
+    global PULL_MULTIPLIER
+
+    V3 = V1 + V2
+    print("V3 local : " + str(V3))
+    theta1 = np.arctan(V1[1]/V1[0])
+    theta2 = np.arctan(V2[1]/V2[0])
+    print("Angle: " + str(theta1 * 360/(2*np.pi)))
+    print("Angle: " + str(theta2 * 360/(2*np.pi)))
+    theta = (theta2 - theta1) / 1.2
+    theta = theta * PULL_MULTIPLIER
+    PULL_MULTIPLIER = PULL_MULTIPLIER * 0.8
+    rot = np.array([[cos(theta), -sin(theta)], [sin(theta), cos(theta)]])
+    counter = rot.dot(V3)
+    counterpull_fac1 = V1 / np.linalg.norm(V1) * 6
+    counterpull_fac2 = V2 / np.linalg.norm(V2) * 6
+
+    print( "V: " + str(counter))
+    V =  (counter + center + counterpull_fac1 + counterpull_fac2)
+    return V#(m - m*(1-PULL_STRENGTH))*V2 - counterpull_fac + center
+
+def printCV(msg, color):
+    global count
+    cv2.putText(img,msg, (10,count), cv2.FONT_HERSHEY_SIMPLEX, 0.4, color, 1, 2)
+    count += 25
+
+def closestPtOnCircle(center, radius, vec):
+    return center + radius * (vec - center)/(np.linalg.norm(vec - center))
 
 if __name__=="__main__":
     filepath = "worlds-edge.png"
