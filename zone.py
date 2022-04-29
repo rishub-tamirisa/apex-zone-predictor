@@ -72,8 +72,11 @@ def calc_zones(center, x1, y1, x2, y2, ring):
     
     v1_norm = np.linalg.norm(V1)
     rad_norm = np.linalg.norm(r1_cen_to_mc)
-    # if (rad_norm != 0):
-        # V1 = V1 * (1 - (v1_norm/rad_norm))
+
+    #TODO: Implement counterpulls with key presses
+    counterpull_fac = None
+    if (rad_norm != 0):
+        counterpull_fac = V1 * (1 - (v1_norm/rad_norm))
 
     ring_2_center = np.array([x2,y2])
     ring_2_rad = rings[ring-1] * ppm
@@ -85,6 +88,10 @@ def calc_zones(center, x1, y1, x2, y2, ring):
         V3 = V1 + V2 + map_center
     else:
         V3 = V1 + V2 + ring_1_center
+    
+    # This is what the counterpull would change, not for all rings though
+    # V3 = counterpull_fac - V2 - ring_1_center
+
     # V3 = V1 + V2 + ring_1_center
     # print(V1)
     # print(V2)
