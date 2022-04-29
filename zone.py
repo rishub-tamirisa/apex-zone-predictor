@@ -63,7 +63,7 @@ def calc_zones(center, x1, y1, x2, y2, ring):
     if dist != 0:
         rad_vec = ring_1_rad * (r1_cen_to_mc / dist)
     else:
-        rad_vec = np.array([0,0])
+        rad_vec = np.array([0,0]) # define 0 vector
     V1 = None
     if dist <= ring_1_rad: # ring 1 contains center  
         V1 = r1_cen_to_mc - rad_vec
