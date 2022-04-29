@@ -40,7 +40,7 @@ def click_event(event, x, y, flags, params):
             color = [(255, 255, 0), (0, 255, 255), (255, 0, 255)]
             #Attempts Zone 3 | (4 & 5 unstable)
             for i in range(2,5):
-                r_pred = calc_zones(np.asarray([arr[i-2][0], arr[i-2][1]]), arr[i-1][0], arr[i-1][1], arr[i][0], arr[i][1], i)
+                r_pred = calc_zones(np.asarray([arr[i-2][0], arr[i-2][1]]), arr[i-1][0], arr[i-1][1], arr[i][0], arr[i][1], i, True)
                 x_r = int(r_pred[0])
                 y_r = int(r_pred[1])
                 arr.append([r_pred[0], r_pred[1]])
@@ -52,7 +52,7 @@ def click_event(event, x, y, flags, params):
             cv2.imshow('image', img)
 
 count = 850
-def calc_zones(center, x1, y1, x2, y2, ring):
+def calc_zones(center, x1, y1, x2, y2, ring, pull):
     global count
     ring_1_center = np.array([x1,y1])
     ring_1_rad = rings[ring-2] * ppm
@@ -90,7 +90,9 @@ def calc_zones(center, x1, y1, x2, y2, ring):
         V3 = V1 + V2 + ring_1_center
     
     # This is what the counterpull would change, not for all rings though
-    # V3 = counterpull_fac - V2 - ring_1_center
+    PULL_STRENGTH = 0.8
+    if pull and ring == 2:
+        V3 = (2 - 2*(1-PULL_STRENGTH))*V2 + (2*(1-PULL_STRENGTH)) * counterpull_fac + ring_1_center
 
     # V3 = V1 + V2 + ring_1_center
     # print(V1)
@@ -111,10 +113,10 @@ def calc_zones(center, x1, y1, x2, y2, ring):
     shift = np.linalg.norm(V3 - ring_2_center)
     
     if (shift > max_shift):
-        print("here on zone: " + str(ring+1))
+        # print("here on zone: " + str(ring+1))
         V3 = ring_2_center + max_shift * (V3 - ring_2_center)/(np.linalg.norm(V3 - ring_2_center))
     shift = np.linalg.norm(V3 - ring_2_center)
-    # print(shift)
+    print(shift)
     # print("Eigenvalue/vectors:")
     # print(w)
     # print(v)
